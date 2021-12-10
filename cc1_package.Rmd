@@ -1,0 +1,54 @@
+---
+title: "R Notebook"
+output: github_document
+---
+```{bash}
+sudo apt-get update -y
+sudo apt-get install -y libglpk-dev 
+sudo apt-get install -y liblzma-dev libbz2-dev
+```
+
+```{r}
+if (!requireNamespace("BiocManager", quietly = TRUE))
+    install.packages("BiocManager")
+BiocManager::install("BiocStyle")
+BiocManager::install("Rhtslib")
+```
+
+```{r}
+.cran_packages <- c("ggplot2", "gridExtra", "devtools")
+install.packages(.cran_packages) 
+.bioc_packages <- c("dada2", "phyloseq", "DECIPHER", "phangorn")
+BiocManager::install(.bioc_packages)
+# Load packages into session, and print package version
+sapply(c(.cran_packages, .bioc_packages), require, character.only = TRUE)
+```
+
+
+```{r}
+.cran_packages <- c( "shiny","miniUI", "caret", "pls", "e1071", "ggplot2", "randomForest", "dplyr", "ggrepel", "nlme", "devtools",
+                  "reshape2", "PMA", "structSSI", "ade4",
+                  "ggnetwork", "intergraph", "scales")
+.github_packages <- c("jfukuyama/phyloseqGraphTest")
+.bioc_packages <- c("genefilter", "impute")
+```
+```{r}
+.inst <- .cran_packages %in% installed.packages()
+if (any(!.inst)){
+  install.packages(.cran_packages[!.inst],repos = "http://cran.rstudio.com/")
+}
+```
+
+```{r}
+.inst <- .github_packages %in% installed.packages()
+if (any(!.inst)){
+  devtools::install_github(.github_packages[!.inst])
+}
+```
+
+```{r}
+.inst <- .bioc_packages %in% installed.packages()
+if(any(!.inst)){BiocManager::install(.bioc_packages[!.inst])
+}
+```
+
