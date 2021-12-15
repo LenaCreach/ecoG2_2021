@@ -38,7 +38,7 @@ fnRs <- file.path(miseq_path, fnRs)
 fnFs[1:3]
 ```
 ```{r}
-qlotQualityProfile(fnFs[1:2])
+plotQualityProfile(fnFs[1:2])
 ```
 ```{r}
 plotQualityProfile(fnRs[1:2])
