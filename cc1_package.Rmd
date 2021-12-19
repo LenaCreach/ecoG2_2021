@@ -8,6 +8,17 @@ sudo apt-get install -y libglpk-dev
 sudo apt-get install -y liblzma-dev libbz2-dev
 ```
 
+```{bash}
+cd ~
+wget https://mothur.s3.us-east-2.amazonaws.com/wiki/miseqsopdata.zip
+unzip miseqsopdata.zip
+```
+
+```{bash}
+cd ~
+wget  https://zenodo.org/record/4587955/files/silva_nr99_v138.1_train_set.fa.gz
+````
+
 ```{r}
 if (!requireNamespace("BiocManager", quietly = TRUE))
     install.packages("BiocManager")
@@ -51,4 +62,5 @@ if (any(!.inst)){
 if(any(!.inst)){BiocManager::install(.bioc_packages[!.inst])
 }
 ```
+
 
