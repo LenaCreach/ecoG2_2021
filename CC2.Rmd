@@ -641,3 +641,53 @@ wget ftp://ftp.sra.ebi.ac.uk/vol1/srr/SRR131/012/SRR13108212
 wget ftp://ftp.sra.ebi.ac.uk/vol1/srr/SRR131/013/SRR13108213
 ````
 
+```{r}
+library("knitr")
+library("BiocStyle")
+.cran_packages <- c("ggplot2", "gridExtra")
+.bioc_packages <- c("dada2", "phyloseq", "DECIPHER", "phangorn")
+# Load packages into session, and print package version
+sapply(c(.cran_packages, .bioc_packages), require, character.only = TRUE)
+```
+
+
+
+```{r}
+set.seed(100)
+foraminifere <- "/home/rstudio//mydatalocal/eoG2_2021/foraminifere"
+list.files(foraminifere)
+```
+```{r}
+# Sort ensures forward/reverse reads are in same order
+FNFS <- sort(list.files(foraminifere, pattern="_1.fastq"))
+FNRS <- sort(list.files(foraminifere, pattern="_2.fastq"))
+# Extract sample names, assuming filenames have format: SAMPLENAME_XXX.fastq
+Sample_Names <- sapply(strsplit(FNFS, "_"), `[`, 1)
+# Specify the full path to the fnFs and fnRs
+FNFS <- file.path(foraminifere, FNFS)
+FNRS <- file.path(foraminifere, FNRS)
+FNFS[1:3]
+```
+```{r}
+plotQualityProfile(FNFS[1:2])
+```
+```{r}
+plotQualityProfile(FNRS[1:2])
+```
+```{r}
+FILT_path <- file.path(foraminifere, "filter") # Place filtered files in filtered/ subdirectory
+if(!file_test("-d", FILT_path)) dir.create(FILT_path)
+FILTFS <- file.path(FILT_path, paste0(Sample_Names, "_f_filt.fastq.gz"))
+FILTRS <- file.path(FILT_path, paste0(Sample_Names, "_r_filt.fastq.gz"))
+```
+
+
+
+```{r}
+head(cbind(FNFS, FNRS))
+```
+
+```{r}
+out2 <- filterAndTrim(FNFS, FILTFS, FNRS, FILTRS, truncLen=c(240,160), maxN = 0,maxEE = c(2,2), truncQ = 2, rm.phix = TRUE, compress=FALSE, multithread = TRUE)
+head(out2)
+```
