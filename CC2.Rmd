@@ -654,7 +654,7 @@ sapply(c(.cran_packages, .bioc_packages), require, character.only = TRUE)
 
 ```{r}
 set.seed(100)
-foraminifere <- "/home/rstudio//mydatalocal/eoG2_2021/foraminifere"
+foraminifere <- "/home/rstudio/mydatalocal/eoG2_2021/foraminifere"
 list.files(foraminifere)
 ```
 ```{r}
@@ -675,19 +675,110 @@ plotQualityProfile(FNFS[1:2])
 plotQualityProfile(FNRS[1:2])
 ```
 ```{r}
-FILT_path <- file.path(foraminifere, "filter") # Place filtered files in filtered/ subdirectory
+FILT_path <- file.path(foraminifere, "filtered") # Place filtered files in filtered/ subdirectory
 if(!file_test("-d", FILT_path)) dir.create(FILT_path)
 FILTFS <- file.path(FILT_path, paste0(Sample_Names, "_f_filt.fastq.gz"))
 FILTRS <- file.path(FILT_path, paste0(Sample_Names, "_r_filt.fastq.gz"))
 ```
 
+```{r}
+names(FILTFS)<- Sample_Names
+names(FILTRS)<- Sample_Names
+```
+
 
 
 ```{r}
-head(cbind(FNFS, FNRS))
+cbind(R1=FNFS, R2=FNRS)
 ```
 
 ```{r}
-out2 <- filterAndTrim(FNFS, FILTFS, FNRS, FILTRS, truncLen=c(240,160), maxN = 0,maxEE = c(2,2), truncQ = 2, rm.phix = TRUE, compress=FALSE, multithread = TRUE)
+FNFS <- sort(FNFS)
+FNRS <- sort(FNRS)
+```
+
+
+
+```{r}
+out2 <- filterAndTrim(FNFS, FILTFS, FNRS, FILTRS, truncLen=c(280,280), maxN = 0,maxEE = c(2,2), truncQ = 2, rm.phix = TRUE, compress=TRUE, multithread = TRUE)
 head(out2)
+```
+
+```{r}
+DEREPFS <- derepFastq(FILTFS, verbose=TRUE)
+DEREPRS <- derepFastq(FILTRS, verbose=TRUE)
+# Name the derep-class objects by the sample names
+names(DEREPFS) <- Sample_Names
+names(DEREPRS) <- Sample_Names
+```
+```{r}
+errF <- learnErrors(FILTFS, multithread=TRUE)
+```
+```{r}
+errR <- learnErrors(FILTRS, multithread=TRUE)
+```
+
+```{r}
+plotErrors(errF)
+plotErrors(errR)
+```
+```{r}
+DADAFS <- dada(derepFs, err=errF, multithread=TRUE)
+```
+
+```{r}
+DADARS <- dada(derepRs, err=errR, multithread=TRUE)
+```
+
+```{r}
+DADAFS[[1]]
+```
+
+```{r}
+mergers <- mergePairs(dadaFs, derepFs, dadaRs, derepRs)
+```
+
+```{r}
+SeqtabAll <- makeSequenceTable(mergers[!grepl("Mock", names(mergers))])
+table(nchar(getSequences(SeqtabAll)))
+```
+
+```{r}
+SeqtabNoC <- removeBimeraDenovo(SeqtabAll)
+```
+
+```{bash}
+cd ~
+wget  https://zenodo.org/record/4587955/files/silva_nr99_v138.1_train_set.fa.gz
+```
+
+```{r}
+FastaRef <- "/home/rstudio/silva_nr99_v138.1_train_set.fa.gz"
+TaxTab <- assignTaxonomy(SeqtabNoC, refFasta=FastaRef, multithread=TRUE)
+unname(head(taxTab))
+```
+
+```{r}
+SEQS <- getSequences(SeqtabNoC)
+names(SEQS) <- SEQS # This propagates to the tip labels of the tree
+Alignment <- AlignSeqs(DNAStringSet(SEQS), anchor=NA,verbose=FALSE)
+```
+
+```{r}
+PhangAlign <- phyDat(as(Alignment, "matrix"), type="DNA")
+DM <- dist.ml(PhangAlign)
+TREENJ <- NJ(DM) # Note, tip order != sequence order
+Fit = pml(TREENJ, data=PhangAlign)
+FitGTR <- update(Fit, k=4, inv=0.2)
+FitGTR <- optim.pml(FitGTR, model="GTR", optInv=TRUE, optGamma=TRUE,
+        rearrangement = "stochastic", control = pml.control(trace = 0))
+detach("package:phangorn", unload=TRUE)
+```
+
+```{r}
+SAMDF <- read.csv("https://raw.githubusercontent.com/spholmes/F1000_workflow/master/data/MIMARKS_Data_combined.csv",header=TRUE)
+SAMDF$SampleID <- paste0(gsub("00", "",SAMDF$host_subject_id), "D", SAMDF$age-21)
+SAMDF <- SAMDF[!duplicated(SAMDF$SampleID),] # Remove dupicate entries for reverse reads
+rownames(SeqtabAll) <- gsub("124", "125", rownames(SeqtabAll)) # Fix discrepancy
+all(rownames(SeqtabAll) %in% SAMDF$SampleID) # TRUE
 ```
